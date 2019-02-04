@@ -39,7 +39,7 @@ jobs:
     inputs:
       command: restore
       feedsToUse: config
-      restoreSolution: 'eng\internal\Toolset.csproj'
+      restoreSolution: 'eng\common\internal\Tools.csproj'
       nugetConfigPath: 'NuGet.config'
       restoreDirectory: '$(UserProfile)\.nuget\packages'
 
@@ -65,8 +65,10 @@ jobs:
               -officialBuildId $(Build.BuildNumber)
               -officialSkipTests $(SkipTests)
               -officialSkipApplyOptimizationData $(SkipApplyOptimizationData)
-              -vsDropName $(VisualStudio.DropName)
-              -vsDropAccessToken $(System.AccessToken)
+              /p:RepositoryName=$(Build.Repository.Name)
+              /p:RepositoryBranchName=$(Build.SourceBranchName)
+              /p:VisualStudioDropAccessToken=$(System.AccessToken)
+              /p:VisualStudioDropName=$(VisualStudio.DropName)
               /p:DotNetSignType=$(SignType)
               /p:DotNetPublishToBlobFeed=true
               /p:DotNetPublishBlobFeedKey=$(dotnetfeed-storage-access-key-1)
@@ -81,7 +83,7 @@ jobs:
     displayName: Publish Assets
     inputs:
       filePath: 'eng\publish-assets.ps1'
-      arguments: '-configuration $(BuildConfiguration) -branchName "$(Build.SourceBranch)" -mygetApiKey $(Roslyn.MyGetApiKey) -nugetApiKey $(Roslyn.NuGetApiKey) -gitHubUserName $(Roslyn.GitHubUserName) -gitHubToken $(Roslyn.GitHubToken) -gitHubEmail $(Roslyn.GitHubEmail)'
+      arguments: '-configuration $(BuildConfiguration) -branchName "$(Build.SourceBranchName)" -mygetApiKey $(Roslyn.MyGetApiKey) -nugetApiKey $(Roslyn.NuGetApiKey) -gitHubUserName $(Roslyn.GitHubUserName) -gitHubToken $(Roslyn.GitHubToken) -gitHubEmail $(Roslyn.GitHubEmail)'
     condition: succeeded()
 
   # Publish OptProf configuration files
@@ -109,12 +111,12 @@ jobs:
   # Publish run settings
   - task: PowerShell@2
     inputs:
-      filePath: eng\generate-optprof-run-settings.ps1
+      filePath: eng\common\sdk-task.ps1
       arguments: -configuration $(BuildConfiguration)
-                 -vsDropName $(VisualStudio.DropName)
-                 -bootstrapperInfo $(Build.StagingDirectory)\MicroBuild\Output\BootstrapperInfo.json
-      failOnStderr: true
-    displayName: 'OptProf - Generate runsettings file'
+                 -task VisualStudio.BuildIbcTrainingSettings
+                 /p:VisualStudioDropName=$(VisualStudio.DropName)
+                 /p:BootstrapperInfoPath=$(Build.StagingDirectory)\MicroBuild\Output\BootstrapperInfo.json
+    displayName: 'OptProf - Build IBC training settings'
     condition: succeeded()
 
   # Publish bootstrapper info
